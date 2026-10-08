@@ -151,7 +151,7 @@ export default {
 			log(`[叉HTTP] 命中请求: ${url.pathname}${url.search}`);
 			return await 处理叉HTTP请求(request, userID, 反代上下文);
 		} else {
-			if (url.protocol === 'http:' && url.hostname !== '127.0.0.1' && url.hostname !== 'localhost') return Response.redirect(url.href.replace(`http://${url.hostname}`, `https://${url.hostname}`), 301);
+			if (url.protocol === 'http:' && url.hostname !== '127.0.0.1' && url.hostname !== 'localhost' && (request.headers.get('x-forwarded-proto') || '').toLowerCase() !== 'https') return Response.redirect(url.href.replace(`http://${url.hostname}`, `https://${url.hostname}`), 301);
 			if (!管理员密码) return fetch(Pages静态页面 + '/noADMIN').then(r => { const headers = new Headers(r.headers); headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); headers.set('Pragma', 'no-cache'); headers.set('Expires', '0'); return new Response(r.body, { status: 404, statusText: r.statusText, headers }) });
 			if (env.KV && typeof env.KV.get === 'function') {
 				const 区分大小写访问路径 = url.pathname.slice(1);
