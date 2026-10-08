@@ -1,0 +1,13 @@
+{
+  "name": "edgetunnel-vercel",
+  "version": "1.0.0",
+  "description": "edgetunnel VLESS node (Vercel Functions)",
+  "type": "module",
+  "main": "api/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
