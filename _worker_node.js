@@ -5737,7 +5737,7 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 			local: true, // true: 基于本地的优选地址  false: 优选订阅生成器
 			本地IP库: {
 				随机IP: true, // 当 随机IP 为true时生效，启用随机IP的数量，否则使用KV内的ADD.txt
-				随机数量: 16,
+				随机数量: 32,
 				指定端口: -1,
 			},
 			SUB: null,
@@ -5748,13 +5748,13 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 		订阅转换配置: {
 			SUBAPI: `https://SUBAPI.${特征码字典[1]}ssss.net`,
 			SUBCONFIG: `https://raw.githubusercontent.com/${特征码字典[1]}/ACL4SSR/refs/heads/main/Clash/config/ACL4SSR_Online_Mini_MultiMode_CF.ini`,
-			SUBEMOJI: false,
+			SUBEMOJI: true,
 			SUBLIST: false, //仅输出节点信息
 			UDP: false, // 启用 UDP
 			XUDP: false, // 启用 XUDP
 			TLS13: false, // 启用 TLS 1.3
 			APPEND_TYPE: false, // 插入节点类型
-			SORT: false, // 基础节点排序
+			SORT: true, // 基础节点排序
 			EXPAND: true, // 展开规则全文
 		},
 		反代: {
