@@ -440,13 +440,16 @@ export default {
 							const TLS分片参数 = config_JSON.TLS分片 == 'Shadowrocket' ? `&fragment=${encodeURIComponent('1,40-60,30-50,tlshello')}` : config_JSON.TLS分片 == 'Happ' ? `&fragment=${encodeURIComponent('3,1,tlshello')}` : '';
 							let 完整优选IP = [], 其他节点LINK = '', 反代IP池 = [];
 
-							if (!url.searchParams.has('sub') && config_JSON.优选订阅生成.local) { // 本地生成订阅
-								const 完整优选列表 = config_JSON.优选订阅生成.本地IP库.随机IP ? (
-									await 生成随机IP(request, config_JSON.优选订阅生成.本地IP库.随机数量, config_JSON.优选订阅生成.本地IP库.指定端口)
-								)[0] : await env.KV.get('ADD.txt') ? await 整理成数组(await env.KV.get('ADD.txt')) : (
-									await 生成随机IP(request, config_JSON.优选订阅生成.本地IP库.随机数量, config_JSON.优选订阅生成.本地IP库.指定端口)
-								)[0];
-								const 优选API = [], 优选IP = [], 其他节点 = [];
+														if (!url.searchParams.has('sub') && config_JSON.优选订阅生成.local) { // 本地生成订阅
+								const 本地IP库 = config_JSON.优选订阅生成.本地IP库 || {};
+								let 完整优选列表 = [];
+								if (本地IP库.随机IP) {
+									完整优选列表 = (await 生成随机IP(request, 本地IP库.随机数量, 本地IP库.指定端口))[0];
+								} else {
+									const ADD内容 = await env.KV.get('ADD.txt');
+									完整优选列表 = (ADD内容 && ADD内容.trim()) ? await 整理成数组(ADD内容) : (await 生成随机IP(request, 本地IP库.随机数量, 本地IP库.指定端口))[0];
+								}
+	const 优选API = [], 优选IP = [], 其他节点 = [];
 								for (const 元素 of 完整优选列表) {
 									if (元素.toLowerCase().startsWith('sub://')) {
 										优选API.push(元素);
@@ -555,7 +558,8 @@ export default {
 						}
 
 						if (!ua.includes('subconverter') && 用户客户端请求订阅) {
-							const 打乱后HOSTS = [...config_JSON.HOSTS].sort(() => Math.random() - 0.5);
+														const 打乱后HOSTS = config_JSON.HOSTS && config_JSON.HOSTS.length > 0 ? [...config_JSON.HOSTS].sort(() => Math.random() - 0.5) : [url.hostname];
+
 							let 替换域名计数 = 0, 当前随机HOST = null;
 							订阅内容 = 订阅内容
 								.replace(/00000000-0000-4000-8000-000000000000/g, config_JSON.UUID)
@@ -5880,7 +5884,8 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 	if (!config_JSON.ALPN) config_JSON.ALPN = "";
 
 	if (!config_JSON.gRPC模式) config_JSON.gRPC模式 = 'gun';
-	if (!config_JSON.SS) config_JSON.SS = { 加密方式: "aes-128-gcm", TLS: false };
+		if (!config_JSON.SS) config_JSON.SS = { 加密方式: "aes-128-gcm", TLS: true };
+
 
 	if (!config_JSON.反代.路径模板?.[_p]) {
 		config_JSON.反代.路径模板 = {
@@ -5967,16 +5972,22 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 			await env.KV.put('cf.json', JSON.stringify(初始化CF_JSON, null, 2));
 		} else {
 			const CF_JSON = JSON.parse(CF_TXT);
-			if (CF_JSON.UsageAPI) {
+						if (CF_JSON.UsageAPI) {
 				try {
-					const response = await fetch(CF_JSON.UsageAPI);
-					const Usage = await response.json();
-					config_JSON.CF.Usage = Usage;
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), 8000);
+					try {
+						const response = await fetch(CF_JSON.UsageAPI, { signal: controller.signal });
+						const Usage = await response.json();
+						config_JSON.CF.Usage = Usage;
+					} finally {
+						clearTimeout(timeoutId);
+					}
 				} catch (err) {
 					console.error(`请求 CF_JSON.UsageAPI 失败: ${err.message}`);
 				}
 			} else {
-				config_JSON.CF.Email = CF_JSON.Email ? CF_JSON.Email : null;
+	config_JSON.CF.Email = CF_JSON.Email ? CF_JSON.Email : null;
 				config_JSON.CF.GlobalAPIKey = CF_JSON.GlobalAPIKey ? 掩码敏感信息(CF_JSON.GlobalAPIKey) : null;
 				config_JSON.CF.AccountID = CF_JSON.AccountID ? 掩码敏感信息(CF_JSON.AccountID) : null;
 				config_JSON.CF.APIToken = CF_JSON.APIToken ? 掩码敏感信息(CF_JSON.APIToken) : null;
@@ -6077,41 +6088,45 @@ async function 获取优选订阅生成器数据(优选订阅生成器HOST) {
 	}
 
 	const 优选订阅生成器URL = `${格式化HOST}/sub?host=example.com&uuid=00000000-0000-4000-8000-000000000000`;
-
 	try {
-		const response = await fetch(优选订阅生成器URL, {
-			headers: { 'User-Agent': 汇聚订阅_UA }
-		});
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 8000);
+		try {
+			const response = await fetch(优选订阅生成器URL, {
+				headers: { 'User-Agent': 汇聚订阅_UA },
+				signal: controller.signal
+			});
 
-		if (!response.ok) {
-			优选IP.push(`127.0.0.1:1234#${优选订阅生成器HOST}优选订阅生成器异常:${response.statusText}`);
-			return [优选IP, 其他节点LINK];
-		}
-
-		const 优选订阅生成器返回订阅内容 = atob(await response.text());
-		const 订阅行列表 = 优选订阅生成器返回订阅内容.includes('\r\n')
-			? 优选订阅生成器返回订阅内容.split('\r\n')
-			: 优选订阅生成器返回订阅内容.split('\n');
-
-		for (const 行内容 of 订阅行列表) {
-			if (!行内容.trim()) continue; // 跳过空行
-			if (行内容.includes('00000000-0000-4000-8000-000000000000') && 行内容.includes('example.com')) {
-				// 这是优选IP行，提取 域名:端口#备注
-				const 地址匹配 = 行内容.match(/:\/\/[^@]+@([^?]+)/);
-				if (地址匹配) {
-					let 地址端口 = 地址匹配[1], 备注 = ''; // 域名:端口 或 IP:端口
-					const 备注匹配 = 行内容.match(/#(.+)$/);
-					if (备注匹配) 备注 = '#' + decodeURIComponent(备注匹配[1]);
-					优选IP.push(地址端口 + 备注);
-				}
-			} else {
-				其他节点LINK += 行内容 + '\n';
+			if (!response.ok) {
+				优选IP.push(`127.0.0.1:1234#${优选订阅生成器HOST}优选订阅生成器异常:${response.statusText}`);
+				return [优选IP, 其他节点LINK];
 			}
+
+			const 优选订阅生成器返回订阅内容 = atob(await response.text());
+			const 订阅行列表 = 优选订阅生成器返回订阅内容.includes('\r\n')
+				? 优选订阅生成器返回订阅内容.split('\r\n')
+				: 优选订阅生成器返回订阅内容.split('\n');
+
+			for (const 行内容 of 订阅行列表) {
+				if (!行内容.trim()) continue; // 跳过空行
+				if (行内容.includes('00000000-0000-4000-8000-000000000000') && 行内容.includes('example.com')) {
+					// 这是优选IP行，提取 域名:端口#备注
+					const 地址匹配 = 行内容.match(/:\/\/[^@]+@([^?]+)/);
+					if (地址匹配) {
+						let 地址端口 = 地址匹配[1], 备注 = ''; // 域名:端口 或 IP:端口
+						const 备注匹配 = 行内容.match(/#(.+)$/);
+						if (备注匹配) 备注 = '#' + decodeURIComponent(备注匹配[1]);
+						优选IP.push(地址端口 + 备注);
+					}
+				} else {
+					其他节点LINK += 行内容 + '\n';
+				}
+			}
+		} finally {
+			clearTimeout(timeoutId);
 		}
 	} catch (error) {
 		优选IP.push(`127.0.0.1:1234#${优选订阅生成器HOST}优选订阅生成器异常:${error.message}`);
-	}
-
 	return [优选IP, 其他节点LINK];
 }
 
@@ -6162,8 +6177,7 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
 		try {
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => controller.abort(), 超时时间);
-			const response = await fetch(urlWithoutHash, { signal: controller.signal, headers: { 'User-Agent': 汇聚订阅_UA } });
-			clearTimeout(timeoutId);
+						const response = await fetch(urlWithoutHash, { signal: controller.signal, headers: { 'User-Agent': 汇聚订阅_UA } });
 			let text = '';
 			try {
 				const buffer = await response.arrayBuffer();
@@ -6205,10 +6219,13 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
 				if (!text || text.trim().length === 0) {
 					return;
 				}
-			} catch (e) {
+						} catch (e) {
 				console.error('Failed to decode response:', e);
 				return;
+			} finally {
+				clearTimeout(timeoutId);
 			}
+}
 
 			// 预处理订阅内容
 			/*
