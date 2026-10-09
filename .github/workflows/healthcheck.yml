@@ -1,4 +1,4 @@
-name: CF璁㈤槄鍋ュ悍妫€鏌ヤ笌鑷姩淇
+name: CF Subscription Health Check
 
 on:
   schedule:
@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 杩愯鍋ュ悍妫€鏌ワ紙寮傚父鑷姩瑙﹀彂 Vercel 閲嶆柊閮ㄧ讲锛?        env:
+      - name: Run health check and auto-fix
+        env:
           SUB_URL: ${{ secrets.SUB_URL }}
           DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
         run: |
