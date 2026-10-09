@@ -1,4 +1,4 @@
-name: CF订阅健康检查与自动修复
+name: CF璁㈤槄鍋ュ悍妫€鏌ヤ笌鑷姩淇
 
 on:
   schedule:
@@ -10,10 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 运行健康检查（异常自动 Redeploy）
-        env:
+      - name: 杩愯鍋ュ悍妫€鏌ワ紙寮傚父鑷姩瑙﹀彂 Vercel 閲嶆柊閮ㄧ讲锛?        env:
           SUB_URL: ${{ secrets.SUB_URL }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
         run: |
           python3 .github/scripts/healthcheck.py
