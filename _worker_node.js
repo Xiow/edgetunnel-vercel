@@ -5752,7 +5752,7 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 		优选订阅生成: {
 			local: true, // true: 基于本地的优选地址  false: 优选订阅生成器
 			本地IP库: {
-				随机IP: true, // 当 随机IP 为true时生效，启用随机IP的数量，否则使用KV内的ADD.txt
+				随机IP: false, // 当 随机IP 为true时生效，启用随机IP的数量，否则使用KV内的ADD.txt
 				随机数量: 32,
 				指定端口: -1,
 			},
@@ -5833,6 +5833,21 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 			config_JSON = 默认配置JSON;
 		} else {
 			config_JSON = JSON.parse(configJSON);
+				// 内存 KV 重启后自动回填默认直连地址，保证订阅始终使用直连节点
+	if (!await env.KV.get('ADD.txt')) {
+		const 默认直连地址 = [
+			'www.xiow123.duckdns.org:443#Direct Main',
+			'76.76.21.21:443#Vercel IP',
+			'76.76.21.21:2053#Vercel IP',
+			'76.76.21.21:2083#Vercel IP',
+			'76.76.21.21:2087#Vercel IP',
+			'76.76.21.21:2096#Vercel IP',
+			'76.76.21.21:8443#Vercel IP',
+			'edgetunnel-vercel-orcin.vercel.app:443#Vercel Domain'
+		].join('\n');
+		await env.KV.put('ADD.txt', 默认直连地址);
+	}
+			
 		}
 	} catch (error) {
 		console.error(`读取config_JSON出错: ${error.message}`);
@@ -5851,6 +5866,12 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 	if (!config_JSON.HOSTS) config_JSON.HOSTS = [hostname];
 	if (env.HOST) config_JSON.HOSTS = (await 整理成数组(env.HOST)).map(h => h.toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0]);
 	config_JSON.UUID = userID;
+		// 强制直连模式：无论 KV 中旧配置如何，订阅始终使用 ADD.txt 直连地址（Vercel 下 CF 官方优选 IP 不可用）
+	if (!config_JSON.优选订阅生成) config_JSON.优选订阅生成 = {};
+	if (!config_JSON.优选订阅生成.本地IP库) config_JSON.优选订阅生成.本地IP库 = {};
+	config_JSON.优选订阅生成.local = true;
+	config_JSON.优选订阅生成.本地IP库.随机IP = false;
+	
 	if (!config_JSON.随机路径) config_JSON.随机路径 = false;
 	if (!config_JSON.启用0RTT) config_JSON.启用0RTT = false;
 
