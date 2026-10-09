@@ -9,6 +9,7 @@ jobs:
   healthcheck:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: 运行健康检查（异常自动 Redeploy）
         env:
           SUB_URL: ${{ secrets.SUB_URL }}
