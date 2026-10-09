@@ -67,6 +67,22 @@ const Version = '2026-09-22 20:01:17';
 let config_JSON, 缓存SOCKS5白名单 = null, 调试日志打印 = false;
 let SOCKS5白名单 = ['*tapecontent.net', '*cloudatacdn.com', '*loadshare.org', '*cdn-centaurus.com', 'scholar.google.com'];
 const Pages静态页面 = 'https://edt-pages.github.io';
+async function 转发静态页面(路径) {
+  const 上游响应 = await fetch(Pages静态页面 + 路径);
+  const 响应头 = new Headers(上游响应.headers);
+  响应头.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  响应头.set('Pragma', 'no-cache');
+  响应头.set('Expires', '0');
+  const 响应体 = await 上游响应.arrayBuffer();
+  const 字节 = new Uint8Array(响应体);
+  const 是真gzip = 响应体.byteLength >= 2 && 字节[0] === 0x1f && 字节[1] === 0x8b;
+  if (!是真gzip && (响应头.get('Content-Encoding') || '').toLowerCase().indexOf('gzip') >= 0) {
+    响应头.delete('Content-Encoding');
+    响应头.delete('Content-Length');
+  }
+  return new Response(响应体, { status: 上游响应.status, statusText: 上游响应.statusText, headers: 响应头 });
+}
+
 ///////////////////////////////////////////////////////全局常量和工具函数///////////////////////////////////////////////
 const WS早期数据最大字节 = 8 * 1024, WS早期数据最大头长度 = Math.ceil(WS早期数据最大字节 * 4 / 3) + 4;
 const 上行合包目标字节 = 20 * 1024, 上行队列最大字节 = 16 * 1024 * 1024, 上行队列最大条目 = 4096;
@@ -174,7 +190,7 @@ export default {
 							return 响应;
 						}
 					}
-					return fetch(Pages静态页面 + '/login');
+					return 转发静态页面('/login');
 				} else if (访问路径 === 'admin' || 访问路径.startsWith('admin/')) {//验证cookie后响应管理页面
 					const cookies = request.headers.get('Cookie') || '';
 					const authCookie = cookies.split(';').find(c => c.trim().startsWith('auth='))?.split('=')[1];
@@ -367,7 +383,7 @@ export default {
 					}
 
 					ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Admin_Login', config_JSON));
-					return fetch(Pages静态页面 + '/admin' + url.search);
+					return 转发静态页面('/admin' + url.search);
 				} else if (访问路径 === 'logout' || uuidRegex.test(访问路径)) {//清除cookie并跳转到登录页面
 					const 响应 = new Response('重定向中...', { status: 302, headers: { 'Location': '/login' } });
 					响应.headers.set('Set-Cookie', 'auth=; Path=/; Max-Age=0; HttpOnly');
