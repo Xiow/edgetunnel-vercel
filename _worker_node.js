@@ -6219,13 +6219,13 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
 				if (!text || text.trim().length === 0) {
 					return;
 				}
-						} catch (e) {
+									} catch (e) {
 				console.error('Failed to decode response:', e);
 				return;
 			} finally {
 				clearTimeout(timeoutId);
 			}
-}
+
 
 			// 预处理订阅内容
 			/*
